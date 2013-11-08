@@ -1,0 +1,37 @@
+{
+  "Resources": {
+    /**
+     * Create a new VPC object.
+     */
+    "VPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": { "Fn::FindInMap": [ "SubnetConfig", "VPC", "CIDR" ] },
+        "Tags": [
+          {"Key": "Name", "Value": "prismprimary"} 
+        ]
+      }
+    },
+
+    /**
+     * Create an internet gatway for nodes to pass data through to the outside world.
+     */
+    "InternetGateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [ ]
+      }
+    },
+
+    /**
+     * Attach the InternetGateway to the VPC object.
+     */
+    "AttachGateway": {
+       "Type": "AWS::EC2::VPCGatewayAttachment",
+       "Properties": {
+         "VpcId": { "Ref": "VPC" },
+         "InternetGatewayId": { "Ref": "InternetGateway" }
+       }
+    }
+  }
+}

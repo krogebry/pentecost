@@ -1,0 +1,27 @@
+{
+  "Jax": {
+    "Pent::MongoDBCluster": {
+      "Properties": {
+        "NumShards": 1,
+        "NumConfigServers": 1
+      }
+    },
+    "Pent::CloudRimApplication": {
+      "Template": "cloudrim/service",
+      "Properties": {
+      },
+      "Pent::LaunchInSubnets": [ "Primary", "Secondary", "Tertiary" ]
+    },
+    "Pent::VPCService": {
+      "Properties": {
+        "SubnetConfig": {
+          "VPC": { "CIDR": "10.0.0.0/16" },
+          "OpsAuto": { "CIDR": "10.0.0.0/24"  },
+          "Primary": { "CIDR": "10.0.1.0/24" },
+          "Secondary": { "CIDR": "10.0.2.0/24" },
+          "Tertiary": { "CIDR": "10.0.3.0/24" }
+        }
+      }
+    }// VPCService
+  }
+}

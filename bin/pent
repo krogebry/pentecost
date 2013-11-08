@@ -1,0 +1,44 @@
+#!/usr/bin/env ruby
+##
+# Pentecost
+require "rubygems"
+require "pp"
+require "json"
+require 'highline/import'
+require "thor"
+require "base64"
+require "logger"
+require "openssl"
+require "rest-client"
+
+FS_ROOT = File.expand_path(File.join(File.dirname(__FILE__), ".."))
+require File.join( FS_ROOT, "/lib/pentecost" )
+require File.join( FS_ROOT, "/lib/version" )
+
+Log = Logger.new( STDOUT )
+Log.level = Logger::DEBUG
+
+class Pentecost::Cli < Thor
+  package_name "Pentecost"
+  map "-L" => :list
+  map "-v" => :version
+        
+  desc "version", "Version"
+  def version()
+    puts Pentecost::VERSION
+  end
+
+  desc "compile INPUT_FILE_NAME OUTPUT_FILE_NAME", "Compile a template"
+  def compile(input_file_name, output_file_name)
+    if(!File.exists?( input_file_name ))
+      Log.fatal( "File does not exist: %s" % input_file_name )
+    end
+    source_json = JSON::parse(File.read( input_file_name ))
+
+    compiler = Pentecost::Compiler.new( source_json )
+    compiler.compile()
+  end
+
+end
+
+Pentecost::Cli.start( ARGV )
