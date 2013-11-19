@@ -1,4 +1,8 @@
 {
+  "Parameters": {
+    "Pent::Params::Core"
+  },
+
   "Resources": {
 
     "ELBSecurityGroup": {
@@ -172,11 +176,6 @@
       }
     },
 
-
-
-
-
-
     "ConfigASG": {
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties": {
@@ -190,7 +189,5 @@
         "LaunchConfigurationName": { "Ref": "ServiceLaunchConfig" }
       }
     }
-
   }
-
 }

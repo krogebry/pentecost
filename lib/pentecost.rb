@@ -56,10 +56,12 @@ module Pentecost
           m.deployment_name = deployment_name
           m.compile()
           m.save()
-          #el_fs_file = File.join( FS_ROOT, "
         end
       end
     end
   end
 
 end
+
+require File.join( FS_ROOT, "/lib/aws/plugins/cf_merge.rb" )
+

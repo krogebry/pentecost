@@ -4,12 +4,15 @@
 require "rubygems"
 require "pp"
 require "json"
-require 'highline/import'
 require "thor"
 require "base64"
 require "logger"
 require "openssl"
 require "rest-client"
+require "aws-sdk-core"
+require "highline/import"
+
+
 
 FS_ROOT = File.expand_path(File.join(File.dirname(__FILE__), ".."))
 require File.join( FS_ROOT, "/lib/pentecost" )
@@ -34,11 +37,57 @@ class Pentecost::Cli < Thor
       Log.fatal( "File does not exist: %s" % input_file_name )
     end
     source_json = JSON::parse(File.read( input_file_name ))
-
     compiler = Pentecost::Compiler.new( source_json )
     compiler.compile()
   end
 
+  desc "launch INPUT_FILE_NAME", "Launch a template"
+  def launch(input_file_name)
+    if(!File.exists?( input_file_name ))
+      Log.fatal( "File does not exist: %s" % input_file_name )
+    end
+
+    #params = JSON::parse(File.read( params_file_name ))
+    template = JSON::parse(File.read( input_file_name ))
+    region_name = "us-east-1"
+
+    Aws.config = { 
+      region: region_name,
+      access_key_id:  ENV["AWS_ACCESS_KEY"],
+      secret_access_key:  ENV["AWS_SECRET_KEY"]
+    }
+    Aws.add_plugin( Aws::Plugins::CloudFormationMerge )
+
+    cfn = Aws::CloudFormation.new()
+
+    stack_name = "ops"
+    deployment_name = "Pent0"
+    deployment_stack_name = "%s-%s" % [deployment_name, stack_name]
+
+    #params = { :parameters => {} }
+    #params[:parameters][""] = stack_name
+    #params[:parameters]["DeploymentName"] = deployment_name
+    #params[:parameters]["AWSAccountName"] = self.deployment.aws_account_name
+
+    #params = {
+      #"Parameters.member.1.ParameterKey" => "AvailabilityZone",
+      #"Parameters.member.1.ParameterValue" => "us-east-1"
+    #}
+
+    #params = { :parameters => [{ "AvailabilityZone" => "us-east-1" }]}
+    params = [{ :parameter_key => "AvailabilityZone", :parameter_value => "us-east-1" }]
+    #params = [{ "AvailabilityZone" => "us-east-1" }]
+
+    pp params
+
+    cfn.create_stack({
+      tags: [{ key: "Name", value: "Test0" }],
+      on_failure: "DO_NOTHING",
+      parameters: params,
+      stack_name: stack_name,
+      template_body: template.to_json
+    })
+  end
 end
 
 Pentecost::Cli.start( ARGV )
