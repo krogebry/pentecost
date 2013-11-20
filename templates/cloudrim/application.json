@@ -1,6 +1,74 @@
 {
   "Parameters": {
-    "Pent::Params::Core"
+
+    "VpcId": {
+      "Type": "String",
+      "Description": "VPC id."
+    },
+
+    "AmiId": {
+      "Type": "String",
+      "Description": "KeyName."
+    },
+
+    "DNSServer": {
+      "Type": "String",
+      "Description": "DNS Server."
+    },
+
+    "InstanceType": {
+      "Type": "String",
+      "Description": "Type of instance."
+    },
+
+    "SubnetId": {
+      "Type": "String",
+      "Description": "Type of instance."
+    },
+    "SubnetCidr": {
+      "Type": "String",
+      "Description": "Type of instance."
+    },
+
+    "Min": { "Type": "String", "Description": "Min number of instances." },
+    "Max": { "Type": "String", "Description": "Min number of instances." },
+    "DesiredCapacity": { "Type": "String", "Description": "Min number of instances." },
+
+    "KeyName": {
+      "Type": "String",
+      "Description": "KeyName."
+    },
+
+    "StackName": {
+      "Type": "String",
+      "Description": "KeyName."
+    },
+
+    "DomainName": {
+      "Type": "String",
+      "Description": "KeyName."
+    },
+
+    "DeploymentName": {
+      "Type": "String",
+      "Description": "KeyName."
+    },
+
+    "HTTPBuildUrl": {
+      "Type": "String",
+      "Description": "Build package URL."
+    },
+
+    "HTTPProxyUrl": {
+      "Type": "String",
+      "Description": "Build package URL."
+    },
+
+    "AvailabilityZone": {
+      "Type": "String",
+      "Description": "AvailabilityZone."
+    }
+
   },
 
   "Resources": {
@@ -20,7 +88,7 @@
     "ElasticLoadBalancer": {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties": {
-        "Subnets": [{ "Ref": "PrivateSubnetId" }],
+        "Subnets": [{ "Ref": "SubnetId" }],
         "Scheme": "internal",
         "Listeners": [{ "LoadBalancerPort": "9000", "InstancePort": "9000", "Protocol": "TCP" }],
         "HealthCheck": {
@@ -30,7 +98,7 @@
           "HealthyThreshold": "3",
           "UnhealthyThreshold": "5"
         },
-        "SecurityGroups": [{ "Ref": "LoadBalancerSecurityGroup" }]
+        "SecurityGroups": [{ "Ref": "ELBSecurityGroup" }]
       }
     },
 
@@ -42,7 +110,6 @@
         "RecordSets": [{
           "Name": { "Fn::Join": [ "", [
             "mongos.",
-            { "Ref": "StackName" }, ".",
             { "Ref": "DeploymentName" }, ".",
             { "Ref": "AWS::Region" }, ".",
             { "Ref": "DomainName" }, "."
@@ -95,12 +162,6 @@
       "Metadata": {
         "Comment1": "Configure and deploy the prism nodes for a master cluster",
         "AWS::CloudFormation::Init": {
-          "HTC::Include": [ 
-            "HTC::OpsVars::Init", 
-            "HTC::OpsVars::EC2User", 
-            "HTC::OpsVars::VPCClientRoot", 
-            "HTC::OpsVars::VPCClientFiles", 
-            "HTC::OpsVars::ChefClientConfig" ],
           "config": {
             "files": {
               "/home/ec2-user/deploy": {
@@ -131,7 +192,7 @@
       },
 
       "Properties": {
-        "ImageId": { "Fn::FindInMap": [ "AWSRegionArch2AMI", { "Ref": "AWS::Region" }, "opsauto" ]},
+        "ImageId": { "Ref": "AmiId" },
         "KeyName": { "Ref": "KeyName" },
         "UserData": { "Fn::Base64": { "Fn::Join": [ "", [
           "#!/bin/bash -v\n",
@@ -143,33 +204,12 @@
           "/opt/aws/bin/cfn-init --https-proxy ", { "Ref": "HTTPProxyUrl" },
             " --stack ", { "Ref" : "AWS::StackId" }, " --resource ServiceLaunchConfig --region ", { "Ref" : "AWS::Region" }, "\n",
 
-          /**
           "hostname ",{ "Fn::Join": [ "", [
             "`curl http://169.254.169.254/1.0/meta-data/instance-id`.",
-            { "Ref": "StackName" }, ".",
             { "Ref": "DeploymentName" }, ".",
             { "Ref": "AWS::Region" }, ".int.",
             { "Ref": "DomainName" }
-          ]] }, "\n",
-          */
-
-          "export HTTP_PROXY='",{ "Ref": "HTTPProxyUrl" },"'\n",
-          "export http_proxy='",{ "Ref": "HTTPProxyUrl" },"'\n",
-          "export HTTPS_PROXY='",{ "Ref": "HTTPProxyUrl" },"'\n",
-          "export https_proxy='",{ "Ref": "HTTPProxyUrl" },"'\n"
-
-          //"rm -rf /etc/chef/client.pem\n",
-          //"/opt/chef/embedded/bin/gem install bson_ext\n",
-          //"service mongod stop\n",
-          //"su - ec2-user -c '/home/ec2-user/deploy 0.0.8'\n",
-          //"chef-client -j /etc/chef/dna.json\n"
-
-          //"wget -O /home/ec2-user/cloudrim-0.0.3.tar.bz2 http://ops.prism.us-east-1.int.opsautohtc.net:8080/archive/cloudrim-0.0.3.tar.bz2\n",
-          //"cd /home/ec2-user/; tar -xjpf cloudrim-0.0.3.tar.bz2\n",
-          //"chown -R ec2-user:ec2-user /home/ec2-user/cloudrim\n",
-          //"chown -R ec2-user:ec2-user /var/log/cloudrim.log\n",
-          //"cd /home/ec2-user/cloudrim\n",
-          //"node node.js > /var/log/cloudrim.log &\n"
+          ]] }, "\n"
         ]]}},
         "InstanceType": { "Ref": "InstanceType" },
         "SecurityGroups": [{ "Ref": "InstanceSecurityGroup" }]
@@ -184,10 +224,11 @@
         "MaxSize": { "Ref": "Max" },
         "DesiredCapacity": { "Ref": "DesiredCapacity" },
         "AvailabilityZones": [{ "Ref": "AvailabilityZone" }],
-        "VPCZoneIdentifier": [{ "Ref": "PrivateSubnetId" }],
+        "VPCZoneIdentifier": [{ "Ref": "SubnetId" }],
         "LoadBalancerNames": [{ "Ref": "ElasticLoadBalancer" }],
         "LaunchConfigurationName": { "Ref": "ServiceLaunchConfig" }
       }
     }
+
   }
 }

@@ -1,0 +1,237 @@
+{
+  "Description": "CloudRim.",
+  "AWSTemplateFormatVersion": "2010-09-09",
+
+  "Parameters": {
+    "Min": {
+      "Type": "String",
+      "Default": "1",
+      "Description": "Name of the keypair."
+    },
+
+    "Max": {
+      "Type": "String",
+      "Default": "1",
+      "Description": "Name of the keypair."
+    },
+
+    "DesiredCapacity": {
+      "Type": "String",
+      "Default": "1",
+      "Description": "Name of the keypair."
+    },
+
+    "AvailabilityZone": {
+      "Type": "String",
+      "Default": "us-west-2",
+      "Description": "Name of the zone."
+    },
+
+    "DefaultAMIName": {
+      "Type": "String",
+      "Default": "opsauto",
+      "Description": "Name of the zone."
+    },
+
+    "KeyName": {
+      "Type": "String",
+      "Default": "opsauto",
+      "Description": "Name of the keypair."
+    },
+
+    "StackName": {
+      "Type": "String",
+      "Default": "All",
+      "Description": "Name of the keypair."
+    },
+
+    "InstanceType": {
+      "Type": "String",
+      "Default": "m1.large",
+      "Description": "Type of instance to use."
+    },
+
+    "DeploymentName": {
+      "Type": "String",
+      "Default": "Prism",
+      "Description": "Name of the keypair."
+    },
+
+    "DNSServer": {
+      "Type": "String",
+      "Default": "10.23.112.2",
+      "Description": "Name of the zone."
+    },
+
+    "DomainName": {
+      "Type": "String",
+      "Default": "opsautohtc.net",
+      "Description": "Name of the domain."
+    }
+  },
+
+  "Mappings": {
+    "AWSRegionArch2AMI": {
+      "us-east-1": {
+        "opsauto": "ami-01d09b68",
+        "opsautoctos": "ami-0b104662",
+        "opsautoserver": "ami-2f753f46",
+        "logstash": "ami-07460a6e",
+        "mongodb": "ami-31460a58"
+      },
+      "us-west-1": {
+        "opsauto": "ami-d0be8b95",
+        "opsautoctos": "ami-1cfcc859",
+        "opsautoserver": "ami-0892a74d",
+        "logstash": "ami-50ba9015",
+        "mongodb": "ami-5cba9019"
+      },
+      "us-west-2": {
+        "opsauto": "ami-204ed110",
+        "opsautoctos": "ami-26b22c16",
+        "opsautoserver": "ami-686cf358",
+        "logstash": "ami-3733a107",
+        "mongodb": "ami-6dba2a5d"
+      },
+      "eu-west-1": {
+        "opsauto": "ami-e839dd9f",
+        "opsautoctos": "ami-50927427",
+        "opsautoserver": "ami-447a9e33",
+        "logstash": "ami-0d3c2679",
+        "mongodb": "ami-033c2677"
+      },
+      "ap-southeast-1": {
+        "opsauto": "ami-98c48fca",
+        "opsautoctos": "ami-c44b0196",
+        "opsautoserver": "ami-50eba002",
+        "logstash": "ami-923e75c0",
+        "mongodb": "ami-903e75c2"
+      },
+      "ap-northeast-1": {
+        "opsauto": "ami-19c15e18",
+        "opsautoctos": "ami-513ca250",
+        "opsautoserver": "ami-35801f34",
+        "logstash": "ami-2f67f52e",
+        "mongodb": "ami-3167f530"
+      },
+      "ap-southeast-2": {
+        "opsauto": "ami-81aa37bb",
+        "opsautoctos": "ami-91118cab",
+        "opsautoserver": "ami-8b5ec3b1",
+        "logstash": "ami-67d74a5d",
+        "mongodb": "ami-5bd74a61"
+      },
+      "sa-east-1": {
+        "opsauto": "ami-b38f28ae",
+        "opsautoctos": "ami-2b278036",
+        "opsautoserver": "ami-6391367e",
+        "logstash": "ami-0b1db916",
+        "mongodb": "ami-051db918"
+      }
+    },
+
+    "SubnetConfig": {
+      "VPC": { "CIDR": "10.0.0.0/16" },
+      "OpsAuto": { "CIDR": "10.0.0.0/24"  },
+      "Primary": { "CIDR": "10.0.1.0/24" },
+      "Secondary": { "CIDR": "10.0.2.0/24" }
+    }
+  },
+
+  "Resources": {
+    "VPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": { "Fn::FindInMap": [ "SubnetConfig", "VPC", "CIDR" ] },
+        "Tags": [
+          {"Key": "Name", "Value": "prismprimary"} 
+        ]
+      }
+    },
+
+    "InternetGateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [ ]
+      }
+    },
+
+    "AttachGateway": {
+       "Type": "AWS::EC2::VPCGatewayAttachment",
+       "Properties": {
+         "VpcId": { "Ref": "VPC" },
+         "InternetGatewayId": { "Ref": "InternetGateway" }
+       }
+    },
+
+    "OpsAutoSubnet": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3-us-west-2.amazonaws.com/opsauto/cloudrim/core/subnet-opsauto.json",
+        "Parameters": {
+          "VPCId": { "Ref": "VPC" },
+          "CidrBlock": { "Fn::FindInMap": [ "SubnetConfig", "OpsAuto", "CIDR" ]},
+          "AvailabilityZone": "us-east-1b",
+          "InternetGatewayId": { "Ref": "InternetGateway" }
+        }
+      }
+    },
+
+    "PrimarySubnet": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3-us-west-2.amazonaws.com/opsauto/cloudrim/core/subnet-primary.json",
+        "Parameters": {
+          "VPCId": { "Ref": "VPC" },
+          "CidrBlock": { "Fn::FindInMap": [ "SubnetConfig", "Primary", "CIDR" ]},
+          "AvailabilityZone": "us-east-1b",
+          "InternetGatewayId": { "Ref": "InternetGateway" }
+        }
+      }
+    },
+
+    "SecondarySubnet": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3-us-west-2.amazonaws.com/opsauto/cloudrim/core/subnet-primary.json",
+        "Parameters": {
+          "VPCId": { "Ref": "VPC" },
+          "CidrBlock": { "Fn::FindInMap": [ "SubnetConfig", "Secondary", "CIDR" ]},
+          "AvailabilityZone": "us-east-1e",
+          "InternetGatewayId": { "Ref": "InternetGateway" }
+        }
+      }
+    },
+
+    "CloudRimApplication": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3-us-west-2.amazonaws.com/opsauto/cloudrim/cloudrim/application.json",
+        "Parameters": {
+          "Min": { "Ref": "Min" },
+          "Max": { "Ref": "Max" },
+          "DesiredCapacity": { "Ref": "DesiredCapacity" },
+          "AmiId": { "Fn::FindInMap": [ "AWSRegionArch2AMI", { "Ref": "AWS::Region" },  { "Ref": "DefaultAMIName" } ]},
+          "VpcId": { "Ref": "VPC" },
+          "KeyName": { "Ref": "KeyName" },
+          "DNSServer": { "Ref": "DNSServer" },
+          "SubnetId": { "Fn::GetAtt": [ "PrimarySubnet", "Outputs.SubnetId" ] },
+          "SubnetCidr": { "Fn::FindInMap": [ "SubnetConfig", "Primary", "CIDR" ]},
+          "StackName": { "Ref": "StackName" },
+          "DomainName": { "Ref": "DomainName" },
+          "HTTPBuildUrl": { "Fn::Join": ["", [
+            "http://opsauto.",{ "Ref": "AWS::Region" },".int.",{ "Ref": "DomainName" },":8080/archive/prism/search/current"]]},
+          "HTTPProxyUrl": { "Fn::Join": ["", [
+            "http://opsauto.",{ "Ref": "AWS::Region" },".int.",{ "Ref": "DomainName" },":3128"]]},
+          "InstanceType": { "Ref": "InstanceType" },
+          "DeploymentName": { "Ref": "DeploymentName" },
+          "AvailabilityZone": "us-east-1b"
+        }
+      }
+    }
+
+  }, 
+
+  "Outputs": {
+  }
+} 
