@@ -3,9 +3,9 @@
 aws s3 sync . s3://opsauto/cloudrim/
 aws cloudformation create-stack \
   --profile us-east-1 \
-  --stack-name CloudRim4 \
-  --template-url https://s3-us-west-2.amazonaws.com/opsauto/cloudrim/theater.json \
+  --stack-name CloudRim0 \
+  --template-url https://s3-us-west-2.amazonaws.com/opsauto/cloudrim/vpc-setup.json \
   --capabilities CAPABILITY_IAM \
-  --parameters "ParameterKey=DomainName,ParameterValue=blah.com" 
-  #--debug \
-  #--notification-ar-ns "arn:aws:sns:us-west-2:218139400964:OpsAuto"
+  --parameters "ParameterKey=DomainName,ParameterValue=opsautohtc.net" 
+  #--template-url https://s3-us-west-2.amazonaws.com/opsauto/cloudrim/theater.json \
+  #--notification-ar-ns "arn:aws:sns:us-west-2:218139400964:OpsAuto" 

@@ -203,7 +203,7 @@
       }
     },
 
-    "CloudRimApplication": {
+    "CloudRimPrimary": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
         "TemplateURL": "https://s3-us-west-2.amazonaws.com/opsauto/cloudrim/cloudrim/application.json",
@@ -219,13 +219,106 @@
           "SubnetCidr": { "Fn::FindInMap": [ "SubnetConfig", "Primary", "CIDR" ]},
           "StackName": { "Ref": "StackName" },
           "DomainName": { "Ref": "DomainName" },
-          "HTTPBuildUrl": { "Fn::Join": ["", [
-            "http://opsauto.",{ "Ref": "AWS::Region" },".int.",{ "Ref": "DomainName" },":8080/archive/prism/search/current"]]},
-          "HTTPProxyUrl": { "Fn::Join": ["", [
-            "http://opsauto.",{ "Ref": "AWS::Region" },".int.",{ "Ref": "DomainName" },":3128"]]},
+          "HTTPProxyUrl": { "Fn::Join": ["", [ "http://opsauto.",{ "Ref": "AWS::Region" },".int.",{ "Ref": "DomainName" },":3128"]]},
           "InstanceType": { "Ref": "InstanceType" },
           "DeploymentName": { "Ref": "DeploymentName" },
           "AvailabilityZone": "us-east-1b"
+        }
+      }
+    },
+
+    "CloudRimSecondary": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3-us-west-2.amazonaws.com/opsauto/cloudrim/cloudrim/application.json",
+        "Parameters": {
+          "Min": { "Ref": "Min" },
+          "Max": { "Ref": "Max" },
+          "DesiredCapacity": { "Ref": "DesiredCapacity" },
+          "AmiId": { "Fn::FindInMap": [ "AWSRegionArch2AMI", { "Ref": "AWS::Region" },  { "Ref": "DefaultAMIName" } ]},
+          "VpcId": { "Ref": "VPC" },
+          "KeyName": { "Ref": "KeyName" },
+          "DNSServer": { "Ref": "DNSServer" },
+          "SubnetId": { "Fn::GetAtt": [ "PrimarySubnet", "Outputs.SubnetId" ] },
+          "SubnetCidr": { "Fn::FindInMap": [ "SubnetConfig", "Primary", "CIDR" ]},
+          "StackName": { "Ref": "StackName" },
+          "DomainName": { "Ref": "DomainName" },
+          "HTTPProxyUrl": { "Fn::Join": ["", [ "http://opsauto.",{ "Ref": "AWS::Region" },".int.",{ "Ref": "DomainName" },":3128"]]},
+          "InstanceType": { "Ref": "InstanceType" },
+          "DeploymentName": { "Ref": "DeploymentName" },
+          "AvailabilityZone": "us-east-1e"
+        }
+      }
+    },
+
+    "MongoDBConfig": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3-us-west-2.amazonaws.com/opsauto/cloudrim/mongodb/configs.json",
+        "Parameters": {
+          "Min": "1",
+          "Max": "1",
+          "DesiredCapacity": "1",
+          "AmiId": { "Fn::FindInMap": [ "AWSRegionArch2AMI", { "Ref": "AWS::Region" },  { "Ref": "DefaultAMIName" } ]},
+          "VpcId": { "Ref": "VPC" },
+          "KeyName": { "Ref": "KeyName" },
+          "DNSServer": { "Ref": "DNSServer" },
+          "SubnetId": { "Fn::GetAtt": [ "PrimarySubnet", "Outputs.SubnetId" ] },
+          "SubnetCidr": { "Fn::FindInMap": [ "SubnetConfig", "Primary", "CIDR" ]},
+          "StackName": { "Ref": "StackName" },
+          "DomainName": { "Ref": "DomainName" },
+          "HTTPProxyUrl": { "Fn::Join": ["", [ "http://opsauto.",{ "Ref": "AWS::Region" },".int.",{ "Ref": "DomainName" },":3128"]]},
+          "InstanceType": { "Ref": "InstanceType" },
+          "DeploymentName": { "Ref": "DeploymentName" },
+          "AvailabilityZone": "us-east-1b"
+        }
+      }
+    },
+
+    "MongoDBPrimary": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3-us-west-2.amazonaws.com/opsauto/cloudrim/mongodb/primary-shards.json",
+        "Parameters": {
+          "Min": { "Ref": "Min" },
+          "Max": { "Ref": "Max" },
+          "DesiredCapacity": { "Ref": "DesiredCapacity" },
+          "AmiId": { "Fn::FindInMap": [ "AWSRegionArch2AMI", { "Ref": "AWS::Region" },  { "Ref": "DefaultAMIName" } ]},
+          "VpcId": { "Ref": "VPC" },
+          "KeyName": { "Ref": "KeyName" },
+          "DNSServer": { "Ref": "DNSServer" },
+          "SubnetId": { "Fn::GetAtt": [ "PrimarySubnet", "Outputs.SubnetId" ] },
+          "SubnetCidr": { "Fn::FindInMap": [ "SubnetConfig", "Primary", "CIDR" ]},
+          "StackName": { "Ref": "StackName" },
+          "DomainName": { "Ref": "DomainName" },
+          "HTTPProxyUrl": { "Fn::Join": ["", [ "http://opsauto.",{ "Ref": "AWS::Region" },".int.",{ "Ref": "DomainName" },":3128"]]},
+          "InstanceType": { "Ref": "InstanceType" },
+          "DeploymentName": { "Ref": "DeploymentName" },
+          "AvailabilityZone": "us-east-1b"
+        }
+      }
+    },
+
+    "MongoDBPrimaryRepl": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3-us-west-2.amazonaws.com/opsauto/cloudrim/mongodb/replset.json",
+        "Parameters": {
+          "Min": { "Ref": "Min" },
+          "Max": { "Ref": "Max" },
+          "DesiredCapacity": { "Ref": "DesiredCapacity" },
+          "AmiId": { "Fn::FindInMap": [ "AWSRegionArch2AMI", { "Ref": "AWS::Region" },  { "Ref": "DefaultAMIName" } ]},
+          "VpcId": { "Ref": "VPC" },
+          "KeyName": { "Ref": "KeyName" },
+          "DNSServer": { "Ref": "DNSServer" },
+          "SubnetId": { "Fn::GetAtt": [ "PrimarySubnet", "Outputs.SubnetId" ] },
+          "SubnetCidr": { "Fn::FindInMap": [ "SubnetConfig", "Primary", "CIDR" ]},
+          "StackName": { "Ref": "StackName" },
+          "DomainName": { "Ref": "DomainName" },
+          "HTTPProxyUrl": { "Fn::Join": ["", [ "http://opsauto.",{ "Ref": "AWS::Region" },".int.",{ "Ref": "DomainName" },":3128"]]},
+          "InstanceType": { "Ref": "InstanceType" },
+          "DeploymentName": { "Ref": "DeploymentName" },
+          "AvailabilityZone": "us-east-1e"
         }
       }
     }
