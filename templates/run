@@ -1,11 +1,19 @@
 #!/bin/bash
 
+#aws --profile us-east-1 cloudformation describe-stacks --stack-name CloudRim0
+#"ParameterKey=DomainName,ParameterValue=opsautohtc.net" 
+
 aws s3 sync . s3://opsauto/cloudrim/
+
 aws cloudformation create-stack \
   --profile us-east-1 \
   --stack-name CloudRim0 \
-  --template-url https://s3-us-west-2.amazonaws.com/opsauto/cloudrim/vpc-setup.json \
-  --capabilities CAPABILITY_IAM \
-  --parameters "ParameterKey=DomainName,ParameterValue=opsautohtc.net" 
-  #--template-url https://s3-us-west-2.amazonaws.com/opsauto/cloudrim/theater.json \
-  #--notification-ar-ns "arn:aws:sns:us-west-2:218139400964:OpsAuto" 
+  --notification-ar-ns "arn:aws:sns:us-east-1:218139400964:opsauto" \
+  --disable-rollback \
+  --template-url https://s3-us-west-2.amazonaws.com/opsauto/cloudrim/theater.json \
+  --capabilities CAPABILITY_IAM 
+  #--parameters "ParameterKey=OpsAutoSubnetId,ParameterValue=subnet-80fcc9f4" "ParameterKey=PrimarySubnetId,ParameterValue=subnet-81fcc9f5" "ParameterKey=SecondarySubnetId,ParameterValue=subnet-e66c1ace" "ParameterValue=opsauto,ParameterKey=DefaultAMIName" "ParameterValue=1,ParameterKey=DesiredCapacity" "ParameterValue=1,ParameterKey=Max" "ParameterValue=opsautohtc.net,ParameterKey=DomainName" "ParameterValue=Prism,ParameterKey=DeploymentName" "ParameterValue=us-west-2,ParameterKey=AvailabilityZone" "ParameterValue=10.23.112.2,ParameterKey=DNSServer" "ParameterValue=1,ParameterKey=Min" "ParameterValue=All,ParameterKey=StackName" "ParameterValue=opsauto,ParameterKey=KeyName" "ParameterValue=m1.large,ParameterKey=InstanceType"
+  #--template-url https://s3-us-west-2.amazonaws.com/opsauto/cloudrim/vpc-setup.json \
+  #--template-url https://s3-us-west-2.amazonaws.com/opsauto/cloudrim/cloudrim/application.json \
+
+

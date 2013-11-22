@@ -11,6 +11,11 @@
       "Description": "KeyName."
     },
 
+    "DNSName": {
+      "Type": "String",
+      "Description": "DNS Name."
+    },
+
     "DNSServer": {
       "Type": "String",
       "Description": "DNS Server."
@@ -105,7 +110,7 @@
         "Comment": "DNS CName for the master redis ELB",
         "RecordSets": [{
           "Name": { "Fn::Join": [ "", [
-            "mongos.",
+            { "Ref": "DNSName" }, ".",
             { "Ref": "DeploymentName" }, ".",
             { "Ref": "AWS::Region" }, ".",
             { "Ref": "DomainName" }, "."
@@ -126,7 +131,7 @@
         "Comment": "DNS CName for the master redis ELB",
         "RecordSets": [{
           "Name": { "Fn::Join": [ "", [
-            "mongos.",
+            { "Ref": "DNSName" }, ".",
             { "Ref": "AWS::Region" }, ".",
             { "Ref": "DomainName" }, "."
           ]]},
@@ -176,10 +181,7 @@
                 "owner": "root",
                 "group": "root",
                 "content": { "Fn::Join": [ "", [
-                  "{",
-                    "\"run_list\": [ \"role[opsauto-core]\", \"role[mongodb-shard-client]\" ], \"ec2\": { \"region\": \"", { "Ref": "AWS::Region" } ,"\"}, ",
-                    "\"htc\": { \"domain_name\": \"", {"Ref": "DomainName" }, "\", \"deployment_name\": \"", { "Ref": "DeploymentName" } ,"\"} ",
-                  "}"
+                  "{\"run_list\": [ \"role[opsauto-core]\", \"role[cloudrim-app]\" ], \"ec2\": { \"region\": \"", { "Ref": "AWS::Region" } ,"\"}}"
                 ]]}
               }
             }

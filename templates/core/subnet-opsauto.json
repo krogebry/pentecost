@@ -115,6 +115,10 @@
     "SubnetAclId": { 
       "Value": { "Ref": "OpsAutoSubnetAcl" },
       "Description": "OpsAuto Subnet ACL id."
+    },
+    "SubnetId": { 
+      "Value": { "Ref": "OpsAutoSubnet" },
+      "Description": "OpsAuto Subnet id."
     }
   }
 }

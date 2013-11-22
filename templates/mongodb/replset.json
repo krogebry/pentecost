@@ -16,7 +16,7 @@
     "ElasticLoadBalancer": {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties": {
-        "Subnets": [{ "Ref": "PrivateSubnetId" }],
+        "Subnets": [{ "Ref": "SubnetId" }],
         "Scheme": "internal",
         "Listeners": [{ "LoadBalancerPort": "9000", "InstancePort": "9000", "Protocol": "TCP" }],
         "HealthCheck": {
@@ -26,7 +26,7 @@
           "HealthyThreshold": "3",
           "UnhealthyThreshold": "5"
         },
-        "SecurityGroups": [{ "Ref": "LoadBalancerSecurityGroup" }]
+        "SecurityGroups": [{ "Ref": "ELBSecurityGroup" }]
       }
     },
 
@@ -37,7 +37,7 @@
         "Comment": "DNS CName for the master redis ELB",
         "RecordSets": [{
           "Name": { "Fn::Join": [ "", [
-            "mongos.",
+            "repl.",
             { "Ref": "StackName" }, ".",
             { "Ref": "DeploymentName" }, ".",
             { "Ref": "AWS::Region" }, ".",
@@ -59,7 +59,7 @@
         "Comment": "DNS CName for the master redis ELB",
         "RecordSets": [{
           "Name": { "Fn::Join": [ "", [
-            "mongos.",
+            "repl.",
             { "Ref": "AWS::Region" }, ".",
             { "Ref": "DomainName" }, "."
           ]]},
@@ -116,8 +116,7 @@
                 "group": "root",
                 "content": { "Fn::Join": [ "", [
                   "{",
-                    "\"run_list\": [ \"role[opsauto-core]\", \"role[mongodb-shard-client]\" ], \"ec2\": { \"region\": \"", { "Ref": "AWS::Region" } ,"\"}, ",
-                    "\"htc\": { \"domain_name\": \"", {"Ref": "DomainName" }, "\", \"deployment_name\": \"", { "Ref": "DeploymentName" } ,"\"} ",
+                    "\"run_list\": [ \"role[opsauto-core]\", \"role[mongodb-replset]\" ], \"ec2\": { \"region\": \"", { "Ref": "AWS::Region" } ,"\"}, ",
                   "}"
                 ]]}
               }
@@ -180,7 +179,7 @@
         "MaxSize": { "Ref": "Max" },
         "DesiredCapacity": { "Ref": "DesiredCapacity" },
         "AvailabilityZones": [{ "Ref": "AvailabilityZone" }],
-        "VPCZoneIdentifier": [{ "Ref": "PrivateSubnetId" }],
+        "VPCZoneIdentifier": [{ "Ref": "SubnetId" }],
         "LoadBalancerNames": [{ "Ref": "ElasticLoadBalancer" }],
         "LaunchConfigurationName": { "Ref": "ServiceLaunchConfig" }
       }

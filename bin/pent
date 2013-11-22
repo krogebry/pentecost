@@ -30,6 +30,44 @@ class Pentecost::Cli < Thor
   def version()
     puts Pentecost::VERSION
   end
+  
+  desc "pop QUEUE_NAME", "Pop a queue."
+  def pop( queue_name )
+    Aws.config = { 
+      access_key_id:  ENV["AWS_ACCESS_KEY"],
+      secret_access_key:  ENV["AWS_SECRET_KEY"]
+    }
+    Log.debug( "Queue name: %s" % queue_name )
+
+    threads = []
+
+    ["us-east-1"].each do |region_name|
+      sqs = Aws::SQS.new({ region: region_name })
+      url = sqs.get_queue_url({ queue_name: "opsauto" }).queue_url
+      attrs = sqs.get_queue_attributes({ queue_url: url, attribute_names: ["All"] })
+      #Log.debug( "Num: %i" % attrs.attributes["ApproximateNumberOfMessages"] )
+      num_messages = attrs.attributes["ApproximateNumberOfMessages"].to_i
+      #num_messages.times do |i|
+      num_messages.times do |i|
+        sqs.receive_message({ queue_url: url }).messages.each do |msg|
+          #Log.debug( "Message: %s" % msg.body )
+          params = {}
+          msg.body.split( "\n" ).each do |line|
+            (key,val) = line.split( "=" )
+            params[key] = val[1,val.length-2]
+          end
+          #pp params
+          #if(params["ResourceStatus"] == "UPDATE_COMPLETE")
+          #end
+          Log.debug( "Status: %s" % params["ResourceStatus"] )
+          sleep 1
+        end
+      end
+      #sqs.receive_message({ queue_url: url }).messages.each do |msg|
+        #Log.debug( "Message: %s" % msg.body )
+      #end
+    end
+  end
 
   desc "compile INPUT_FILE_NAME OUTPUT_FILE_NAME", "Compile a template"
   def compile(input_file_name, output_file_name)
