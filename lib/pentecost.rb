@@ -64,4 +64,5 @@ module Pentecost
 end
 
 require File.join( FS_ROOT, "/lib/aws/plugins/cf_merge.rb" )
+require File.join( FS_ROOT, "/lib/pentecost/pre.rb" )
 

@@ -1,0 +1,24 @@
+#!/bin/bash
+#aws --profile us-east-1 cloudformation describe-stacks --stack-name CloudRim0
+#"ParameterKey=DomainName,ParameterValue=opsautohtc.net" 
+
+aws s3 sync . s3://opsauto/prism/
+
+REGION_NAME="us-west-1"
+#REGION_NAME="us-east-1"
+DEPLOYMENT_NAME="prism001"
+
+aws cloudformation create-stack \
+  --profile ${REGION_NAME} \
+  --stack-name "${DEPLOYMENT_NAME}" \
+  --disable-rollback \
+  --parameters "ParameterKey=DeploymentName,ParameterValue=${DEPLOYMENT_NAME}" \
+  --template-url https://s3-us-west-2.amazonaws.com/opsauto/prism/prism.${REGION_NAME}.json \
+  --capabilities CAPABILITY_IAM 
+  #--notification-ar-ns "arn:aws:sns:us-east-1:218139400964:opsauto" \
+
+#aws cloudformation update-stack \
+  #--profile us-east-1 \
+  #--stack-name "${DEPLOYMENT_NAME}" \
+  #--template-url https://s3-us-west-2.amazonaws.com/opsauto/prism/theater.json \
+  #--capabilities CAPABILITY_IAM 

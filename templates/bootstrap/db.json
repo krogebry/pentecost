@@ -1,0 +1,61 @@
+{
+  "Description": "Pentacost stack.",
+  "AWSTemplateFormatVersion": "2010-09-09",
+
+  "Parameters": {
+    "StackName": {
+      "Type": "String",
+      "Default": "All",
+      "Description": "Name of the keypair."
+    },
+    "NotificationOnCallEmail": {
+      "Type": "String",
+      "Description": "Name of the oncall topic."
+    }
+  },
+
+  "Mappings": { },
+
+  "Resources": {
+
+    "PentDB": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "KeySchema": {
+          "HashKeyElement": {
+            "AttributeName": "stack_name",
+            "AttributeType": "S"
+          }
+        },
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": "5",
+          "WriteCapacityUnits": "10"
+        },
+        "TableName": "dev_pent_stacks"
+      }
+    },
+
+    "DynamoDBAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "DynamoDB",
+        "Namespace": "AWS/DynamoDB",
+        "MetricName": "SuccessfulRequestLatency",
+        "Dimensions": [{
+          "Name": "TableName",
+          "Value" : { "Ref": "PentDB" }
+        }],
+        "Statistic": "Average",
+        "Period": "300",
+        "EvaluationPeriods": "1",
+        "Threshold": "10",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "AlarmActions": [{ "Ref": "NotificationOnCallEmail" }],
+        "InsufficientDataActions": [{ "Ref": "NotificationOnCallEmail" }]
+      }
+    }
+
+  }, 
+
+  "Outputs": { }
+} 

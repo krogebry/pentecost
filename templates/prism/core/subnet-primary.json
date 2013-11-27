@@ -1,0 +1,114 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Parameters": {
+    "VPCId": {
+      "Type": "String",
+      "Description": "VPC Id."
+    },
+    "CidrBlock": {
+      "Type": "String",
+      "Description": "CIDR Block for this subnet."
+    },
+    "InternetGatewayId": {
+      "Type": "String",
+      "Description": "Internet gateway id."
+    },
+    "AvailabilityZone": {
+      "Type": "String",
+      "Description": "AvailabilityZone"
+    }
+  },
+
+  "Resources":{
+    "PrimarySubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "Tags": [ {"Key": "Name", "Value": "prismopsauto" } ],
+        "VpcId": { "Ref": "VPCId" },
+        "CidrBlock": { "Ref": "CidrBlock" },
+        "AvailabilityZone": { "Ref": "AvailabilityZone" }
+      }
+    },
+    "PrimaryRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": { "VpcId": { "Ref": "VPCId" } }
+    },
+    "PrimaryRouteOnPrimarySubnet": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "GatewayId": { "Ref": "InternetGatewayId" },
+        "RouteTableId": { "Ref": "PrimaryRouteTable" },
+        "DestinationCidrBlock": "0.0.0.0/0"
+      }
+    },
+    "PrimarySubnetRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "PrimarySubnet" },
+        "RouteTableId": { "Ref": "PrimaryRouteTable" }
+      }
+    },
+    "PrimarySubnetAcl": {
+      "Type": "AWS::EC2::NetworkAcl",
+      "Properties": { "VpcId": { "Ref": "VPCId" } }
+    },
+    "PrimarySubnetNetworkAclAssociation": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "PrimarySubnet" },
+        "NetworkAclId": { "Ref": "PrimarySubnetAcl" }
+      }
+    },
+
+    "OutboundRepsponseAcl": {
+      "Type": "AWS::EC2::NetworkAclEntry",
+      "Properties": {
+        "Egress": "true",
+        "Protocol": "6",
+        "CidrBlock": "10.0.0.0/7",
+        "PortRange": { "From": "1024", "To": "65535" },
+        "RuleNumber": "100",
+        "RuleAction": "allow",
+        "NetworkAclId": { "Ref": "PrimarySubnetAcl" }
+      }
+    },
+
+    "OutboundSHHAcl": {
+      "Type": "AWS::EC2::NetworkAclEntry",
+      "Properties": {
+        "Egress": "true",
+        "Protocol": "6",
+        "CidrBlock": "10.0.0.0/16",
+        "PortRange": { "From": "22", "To": "22" },
+        "RuleNumber": "101",
+        "RuleAction": "allow",
+        "NetworkAclId": { "Ref": "PrimarySubnetAcl" }
+      }
+    },
+
+    "InboundSSHPrimarySubnetAclEntry": {
+      "Type": "AWS::EC2::NetworkAclEntry",
+      "Properties": {
+        "Egress": "false",
+        "Protocol": "6",
+        "CidrBlock": "10.0.0.0/24",
+        "PortRange": { "From": "22", "To": "22" },
+        "RuleNumber": "100",
+        "RuleAction": "allow",
+        "NetworkAclId": { "Ref": "PrimarySubnetAcl" }
+      }
+    }
+  },
+
+  "Outputs": {
+    "SubnetId": { 
+      "Value": { "Ref": "PrimarySubnet" },
+      "Description": "Primary subnet id."
+    },
+    "SubnetAclId": { 
+      "Value": { "Ref": "PrimarySubnetAcl" },
+      "Description": "Primary Subnet ACL id."
+    }
+  }
+}

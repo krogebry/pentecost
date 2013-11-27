@@ -1,0 +1,302 @@
+{
+  "Parameters": {
+
+    "VpcId": {
+      "Type": "String",
+      "Description": "VPC id."
+    },
+
+    "AmiId": {
+      "Type": "String",
+      "Description": "KeyName."
+    },
+
+    "BucketName": {
+      "Type": "String",
+      "Description": "Name for the s3 bucket."
+    },
+
+    "DNSName": {
+      "Type": "String",
+      "Description": "DNS Name."
+    },
+
+    "DNSServer": {
+      "Type": "String",
+      "Description": "DNS Server."
+    },
+
+    "InstanceType": {
+      "Type": "String",
+      "Description": "Type of instance."
+    },
+
+    "SubnetId": {
+      "Type": "String",
+      "Description": "Type of instance."
+    },
+
+    "SubnetCidr": {
+      "Type": "String",
+      "Description": "Type of instance."
+    },
+
+    "Min": { "Type": "String", "Description": "Min number of instances." },
+    "Max": { "Type": "String", "Description": "Min number of instances." },
+    "DesiredCapacity": { "Type": "String", "Description": "Min number of instances." },
+
+    "KeyName": {
+      "Type": "String",
+      "Description": "KeyName."
+    },
+
+    "StackName": {
+      "Type": "String",
+      "Description": "KeyName."
+    },
+
+    "DomainName": {
+      "Type": "String",
+      "Description": "KeyName."
+    },
+
+    "DeploymentName": {
+      "Type": "String",
+      "Description": "KeyName."
+    },
+
+    "HTTPProxyUrl": {
+      "Type": "String",
+      "Description": "Build package URL."
+    },
+
+    "AvailabilityZone": {
+      "Type": "String",
+      "Description": "AvailabilityZone."
+    },
+
+    "NotificationTopicId": {
+      "Type": "String",
+      "Description": "AvailabilityZone."
+    }
+
+  },
+
+  "Resources": {
+
+    "S3Bucket" : {
+      "Type": "AWS::S3::Bucket"
+    },
+
+    "StackUser": {
+      "Type": "AWS::IAM::User",
+      "Properties": {
+        "Path": "/",
+        "Policies": [{
+          "PolicyName": "root",
+          "PolicyDocument": { "Statement": [{
+            "Effect": "Allow",
+            "Action": [
+              "cloudformation:DescribeStackResource",
+              "s3:GetObject"
+            ],
+            "Resource": "*"
+          }]}
+        }]
+      }
+    },
+
+    "StackKeys": {
+      "Type": "AWS::IAM::AccessKey",
+      "Properties": {
+        "UserName": { "Ref": "StackUser" }
+      }
+    },
+
+    "BucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "PolicyDocument": {
+         "Version"      : "2008-10-17",
+          "Id"           : "BucketPolicy",
+          "Statement"    : [{
+            "Sid"        : "ReadAccess",
+            "Action"     : ["s3:*"],
+            "Effect"     : "Allow",
+            "Resource"   : [{ "Fn::Join": ["", ["arn:aws:s3:::",{ "Ref": "S3Bucket" },"/*"]]}],
+            "Principal"  : { "AWS": {"Fn::GetAtt" : ["StackUser", "Arn"]} }
+          }]
+        },
+        "Bucket": { "Ref": "S3Bucket" }
+      }
+    },
+
+    "ELBSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": { "Ref": "VpcId" },
+        "GroupDescription": "Enable HTTP access on port 9080",
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": "9000", "ToPort": "9000", "CidrIp": "0.0.0.0/0" }
+        ],
+        "SecurityGroupEgress": [ ]
+      }
+    },
+
+    "ElasticLoadBalancer": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties": {
+        "Subnets": [{ "Ref": "SubnetId" }],
+        "Scheme": "internal",
+        "Listeners": [{ "LoadBalancerPort": "9000", "InstancePort": "9000", "Protocol": "TCP" }],
+        "HealthCheck": {
+          "Target": "TCP:9000",
+          "Timeout": "2",
+          "Interval": "20",
+          "HealthyThreshold": "3",
+          "UnhealthyThreshold": "5"
+        },
+        "SecurityGroups": [{ "Ref": "ELBSecurityGroup" }]
+      }
+    },
+
+    "DNSEntry": {
+      "Type": "AWS::Route53::RecordSetGroup",
+      "Properties": {
+        "HostedZoneName": { "Fn::Join": [ "", [{ "Ref": "DomainName" },"."]]},
+        "Comment": "DNS CName for the master redis ELB",
+        "RecordSets": [{
+          "Name": { "Fn::Join": [ "", [
+            { "Ref": "DNSName" }, ".",
+            { "Ref": "DeploymentName" }, ".",
+            { "Ref": "AWS::Region" }, ".",
+            { "Ref": "DomainName" }, "."
+          ]]},
+          "Type": "A",
+          "AliasTarget": {
+            "DNSName": { "Fn::GetAtt": [ "ElasticLoadBalancer", "DNSName" ] },
+            "HostedZoneId": { "Fn::GetAtt": [ "ElasticLoadBalancer", "CanonicalHostedZoneNameID" ] }
+          }
+        }]
+      }
+    },
+
+    "RegionDNSEntry": {
+      "Type": "AWS::Route53::RecordSetGroup",
+      "Properties": {
+        "HostedZoneName": { "Fn::Join": [ "", [{ "Ref": "DomainName" },"."]]},
+        "Comment": "DNS CName for the master redis ELB",
+        "RecordSets": [{
+          "Name": { "Fn::Join": [ "", [
+            { "Ref": "DNSName" }, ".",
+            { "Ref": "AWS::Region" }, ".",
+            { "Ref": "DomainName" }, "."
+          ]]},
+          "Type": "A",
+          "AliasTarget": {
+            "DNSName": { "Fn::GetAtt": [ "ElasticLoadBalancer", "DNSName" ] },
+            "HostedZoneId": { "Fn::GetAtt": [ "ElasticLoadBalancer", "CanonicalHostedZoneNameID" ] }
+          }
+        }]
+      }
+    },
+
+    "InstanceSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": { "Ref": "VpcId" },
+        "GroupDescription": "Enables ports for the LogStash services",
+        "SecurityGroupIngress": [ 
+          { "IpProtocol": "tcp", "FromPort": "22", "ToPort": "22", "CidrIp": "10.0.0.0/7" },
+          { "IpProtocol": "tcp", "FromPort": "9000", "ToPort": "9000", "CidrIp": "10.0.0.0/7" },
+          { "IpProtocol": "tcp", "FromPort": "27017", "ToPort": "27017", "CidrIp": "10.0.0.0/16" }
+        ],
+        "SecurityGroupEgress": [ ]
+      }
+    },
+
+    "ServiceLaunchConfig": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Metadata": {
+        "Comment1": "Configure and deploy the prism nodes for a master cluster",
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "files": {
+              "/home/ec2-user/deploy": {
+                "mode": "000755",
+                "owner": "ec2-user",
+                "group": "ec2-user",
+                "content": { "Fn::Join": [ "", [
+                  "#!/bin/bash\n",
+                  "DEPLOY_VER=$1\n",
+                  "wget -O cloudrim-${DEPLOY_VER}.tar.bz2 http://ops.prism.",{"Ref": "AWS::Region"},".int.",{"Ref": "DomainName"},":8080/archive/cloudrim-${DEPLOY_VER}.tar.bz2\n",
+                  "tar -xjpf cloudrim-${DEPLOY_VER}.tar.bz2\n"
+                ]]}
+              },
+              "/etc/chef/dna.json": {
+                "mode": "000644",
+                "owner": "root",
+                "group": "root",
+                "content": { "Fn::Join": [ "", [
+                  "{\"run_list\": [ \"role[opsauto-core]\", \"role[cloudrim-app]\" ], \"ec2\": { \"region\": \"", { "Ref": "AWS::Region" } ,"\"}}"
+                ]]}
+              }
+            }
+          }
+        },
+
+        "AWS::CloudFormation::Authentication" : {
+          "S3AccessCreds" : {
+            "type" : "S3",
+            "accessKeyId" : { "Ref" : "StackKeys" },
+            "secretKey" : {"Fn::GetAtt": ["StackKeys", "SecretAccessKey"]},
+            "buckets" : [{ "Ref" : "S3Bucket" }]
+          }
+        }
+      },
+
+      "Properties": {
+        "ImageId": { "Ref": "AmiId" },
+        "KeyName": { "Ref": "KeyName" },
+        "UserData": { "Fn::Base64": { "Fn::Join": [ "", [
+          "#!/bin/bash -v\n",
+          "echo 'nameserver ",{"Ref": "DNSServer"},"' > /etc/resolv.conf\n",
+          "mkdir -p /var/log/chef\n",
+          "echo \"proxy=",{ "Ref": "HTTPProxyUrl" },"\" >> /etc/yum.conf\n",
+          "yum update -y aws-cfn-bootstrap\n",
+
+          "/opt/aws/bin/cfn-init --https-proxy ", { "Ref": "HTTPProxyUrl" },
+            " --stack ", { "Ref" : "AWS::StackId" }, " --resource ServiceLaunchConfig --region ", { "Ref" : "AWS::Region" }, "\n",
+
+          "hostname ",{ "Fn::Join": [ "", [
+            "`curl http://169.254.169.254/1.0/meta-data/instance-id`.",
+            { "Ref": "DeploymentName" }, ".",
+            { "Ref": "AWS::Region" }, ".int.",
+            { "Ref": "DomainName" }
+          ]] }, "\n"
+        ]]}},
+        "InstanceType": { "Ref": "InstanceType" },
+        "SecurityGroups": [{ "Ref": "InstanceSecurityGroup" }]
+      }
+    },
+
+    "ConfigASG": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "Tags": [{ "Key": "DeploymentName", "Value": { "Ref": "DeploymentName" }, "PropagateAtLaunch": "true" }],
+        "MinSize": { "Ref": "Min" },
+        "MaxSize": { "Ref": "Max" },
+        "DesiredCapacity": { "Ref": "DesiredCapacity" },
+        "AvailabilityZones": [{ "Ref": "AvailabilityZone" }],
+        "VPCZoneIdentifier": [{ "Ref": "SubnetId" }],
+        "LoadBalancerNames": [{ "Ref": "ElasticLoadBalancer" }],
+        "LaunchConfigurationName": { "Ref": "ServiceLaunchConfig" },
+        "NotificationConfiguration": {
+          "TopicARN": { "Ref": "NotificationTopicId" },
+          "NotificationTypes" : [ "autoscaling:EC2_INSTANCE_LAUNCH","autoscaling:EC2_INSTANCE_LAUNCH_ERROR","autoscaling:EC2_INSTANCE_TERMINATE", "autoscaling:EC2_INSTANCE_TERMINATE_ERROR"]
+        }
+      }
+    }
+
+  }
+}

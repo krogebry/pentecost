@@ -1,0 +1,9 @@
+{
+  "NotificationOnCallEmail": {
+    "Type": "Pent::Lookup",
+    "Parameters": {
+      "Source": "CloudFormation",
+      "LogicalResourceId": "NotificationOnCallEmail"
+    }
+  }
+}

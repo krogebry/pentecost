@@ -8,6 +8,7 @@ require "thor"
 require "base64"
 require "logger"
 require "openssl"
+require "net/http"
 require "rest-client"
 require "aws-sdk-core"
 require "highline/import"
@@ -30,7 +31,84 @@ class Pentecost::Cli < Thor
   def version()
     puts Pentecost::VERSION
   end
+
+  desc "sync", "Sync resources to S3."
+  def sync()
+    Log.debug( "Syncing..." )
+    system( "aws s3 sync templates/ s3://pentecost/" )
+  end
+
+  desc "run_stack STACK_LOCATION STACK_NAME [PARAMS_JSON]", "Run a stack."
+  def run_stack( stack_loc, stack_name, params_json=nil )
+    Log.debug( "Running: %s / %s" % [ stack_loc, stack_name ])
+    region_name = "us-east-1"
+    Aws.config = { 
+      region: region_name,
+      access_key_id:  ENV["AWS_ACCESS_KEY"],
+      secret_access_key:  ENV["AWS_SECRET_KEY"]
+    }
+
+    cfn = Aws::CloudFormation.new()
+
+    if(params_json != nil)
+      Log.debug( "Params json: %s" % params_json )
+    end
+
+    stack_params = [
+      { :parameter_key => "StackName", :parameter_value => stack_name }
+    ]
+
+    ## Check for pre file
+    s3 = Aws::S3.new()
+    begin
+      obj = s3.get_object({
+        key: "%s.pre.json" % stack_loc,
+        bucket: "pentecost"
+      })
+    rescue => e
+    end
+
+    if(obj != nil)
+      pre_params = JSON::parse( obj.body.read )
+      pre_params.each do |param_name, param_info|
+        params = param_info["Parameters"].merge(JSON::parse( params_json ))
+        Log.debug( "Processing pre-params: %s" % params )
+        if(param_info["Type"] == "Pent::Lookup")
+          if(params["Source"] == "CloudFormation")
+            pre = Pentecost::Pre::CloudFormation.new()
+            stack_params.push(pre.execute(params.merge({ :name => param_name })))
+          end
+        end
+      end
+    end
+    
+    create = true
+    if(create)
+      Log.debug( "Creating stack: %s" % stack_params )
+      cfn.create_stack({
+        tags: [{ key: "StackName", value: stack_name }],
+        on_failure: "DO_NOTHING",
+        parameters: stack_params,
+        stack_name: stack_name,
+        capabilities: [ "CAPABILITY_IAM" ],
+        template_url: "https://s3-us-west-2.amazonaws.com/pentecost/%s.json" % stack_loc
+      })
+
+    else
+      Log.debug( "Updating stack: %s" % stack_params )
+      cfn.update_stack({
+        #tags: [{ key: "StackName", value: stack_name }],
+        #on_failure: "DO_NOTHING",
+        parameters: stack_params,
+        stack_name: stack_name,
+        capabilities: [ "CAPABILITY_IAM" ],
+        template_url: "https://s3-us-west-2.amazonaws.com/pentecost/%s.json" % stack_loc
+      })
+
+    end
+  end
   
+  ## This will pop entities off the queue.
   desc "pop QUEUE_NAME", "Pop a queue."
   def pop( queue_name )
     Aws.config = { 
@@ -47,19 +125,30 @@ class Pentecost::Cli < Thor
       num_messages = attrs.attributes["ApproximateNumberOfMessages"].to_i
       #Log.debug( "Num messages: %i" % num_messages )
       num_messages.times do |i|
+        Log.debug( "%i / %i" % [i, num_messages] )
         sqs.receive_message({ queue_url: url }).messages.each do |msg|
           #pp msg
           #Log.debug( "Message: %s" % msg.body )
           params = {}
-          msg.body.split( "\n" ).each do |line|
-            (key,val) = line.split( "=" )
-            params[key] = val[1,val.length-2]
-          end
-          pp params
-          begin
-            json = JSON::parse( params["ResourceProperties"] )
-            Log.debug( "%s\t%s" % [params["LogicalResourceId"], params["ResourceStatus"]] )
+          if(msg.body.match( /^\{\n/ ))
+            params = JSON::parse( msg.body )
+            #pp params
 
+          else
+            msg.body.split( "\n" ).each do |line|
+              (key,val) = line.split( "=" )
+              params[key] = val[1,val.length-2]
+            end
+
+          end
+          #pp params
+          begin
+            #json = JSON::parse( params["ResourceProperties"] )
+            if(params.has_key?( "ResourceProperties" ))
+              Log.debug( "%s\t%s" % [params["LogicalResourceId"], params["ResourceStatus"]] )
+            else
+              Log.debug( "%s\t%s" % [params["Subject"], JSON::parse( params["Message"] )] )
+            end
 
           rescue => e
             Log.debug( "Caught exception: %s" % e )
@@ -103,7 +192,6 @@ class Pentecost::Cli < Thor
       secret_access_key:  ENV["AWS_SECRET_KEY"]
     }
     Aws.add_plugin( Aws::Plugins::CloudFormationMerge )
-
     cfn = Aws::CloudFormation.new()
 
     stack_name = "ops"
@@ -133,6 +221,7 @@ class Pentecost::Cli < Thor
       stack_name: stack_name,
       template_body: template.to_json
     })
+
   end
 end
 
