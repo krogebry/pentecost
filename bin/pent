@@ -36,6 +36,7 @@ class Pentecost::Cli < Thor
   def sync()
     Log.debug( "Syncing..." )
     system( "aws s3 sync templates/ s3://pentecost/" )
+    system( "aws s3 sync /home/ec2-user/dev/deployments/pentecost/ s3://pentecost/" )
   end
 
   desc "run_stack STACK_LOCATION STACK_NAME [PARAMS_JSON]", "Run a stack."
